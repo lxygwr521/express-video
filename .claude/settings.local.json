@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(timeout 5 node app.js)",
+      "Bash(PORT=3001 timeout 5 node app.js)"
+    ]
+  }
+}

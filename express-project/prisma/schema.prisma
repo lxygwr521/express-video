@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int             @id @default(autoincrement())
+  username       String
+  email          String          @unique
+  password       String
+  phone          String
+  image          String?
+  channeldes     String?         @db.Text
+  subscribeCount Int             @default(0)
+  createAt       DateTime        @default(now())
+  updateAt       DateTime        @updatedAt
+
+  videos         Video[]
+  subscribes     Subscribe[]     @relation("Subscriber")
+  subscribedTo   Subscribe[]     @relation("Channel")
+  videocomments  Videocomment[]
+  videolikes     Videolike[]
+  collects       Collect[]
+
+  @@map("users")
+}
+
+model Video {
+  id            Int             @id @default(autoincrement())
+  title         String          @db.VarChar(100)
+  descrption    String?         @db.Text
+  vodvideoId    String
+  userId        Int
+  cover         String?
+  createAt      DateTime        @default(now())
+  updateAt      DateTime        @updatedAt
+
+  user          User            @relation(fields: [userId], references: [id])
+  videocomments Videocomment[]
+  videolikes    Videolike[]
+  collects      Collect[]
+
+  @@map("videos")
+}
+
+model Subscribe {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  channelId Int
+  createAt  DateTime @default(now())
+  updateAt  DateTime @updatedAt
+                   
+  user      User     @relation("Subscriber", fields: [userId], references: [id]) 
+  channel   User     @relation("Channel", fields: [channelId], references: [id])
+
+  @@unique([userId, channelId])
+  @@map("subscribes")
+}
+
+model Videocomment {
+  id       Int      @id @default(autoincrement())
+  content  String   @db.Text
+  videoId  Int
+  userId   Int
+  createAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+  
+  video    Video    @relation(fields: [videoId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@map("videocomments")
+}
+
+model Videolike {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  videoId  Int
+  like     Int      @db.TinyInt
+  createAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  video    Video    @relation(fields: [videoId], references: [id])
+
+  @@unique([userId, videoId])
+  @@map("videolikes")
+}
+
+model Collect {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  videoId  Int
+  createAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  video    Video    @relation(fields: [videoId], references: [id])
+
+  @@unique([userId, videoId])
+  @@map("collects")
+}
