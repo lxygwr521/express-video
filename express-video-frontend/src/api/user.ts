@@ -24,12 +24,12 @@ export const userApi = {
 
   // 关注频道
   subscribe(channelId: number) {
-    return request.get<{ msg: string }>(`/user/subscribe/${channelId}`)
+    return request.post<{ isSubscribe: boolean }>(`/user/subscribe/${channelId}`)
   },
 
   // 取消关注
   unsubscribe(channelId: number) {
-    return request.get(`/user/unsubscribe/${channelId}`)
+    return request.post<{ isSubscribe: boolean }>(`/user/unsubscribe/${channelId}`)
   },
 
   // 获取某用户的订阅列表

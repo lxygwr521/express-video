@@ -14,6 +14,7 @@ export interface Video {
   islike?: boolean
   isDislike?: boolean
   isSubscribe?: boolean
+  isCollect?:boolean
 }
 
 export interface VideoUser {

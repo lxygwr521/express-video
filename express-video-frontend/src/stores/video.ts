@@ -9,7 +9,7 @@ export const useVideoStore = defineStore('video', () => {
   const currentVideo = ref<Video | null>(null)
   const comments = ref<Comment[]>([])
   const commentTotal = ref(0)
-  const hotVideos = ref<Record<string, string>>({})
+  const hotVideos = ref<Array<{ videoId: string; score: string; title: string }>>([])
   const loading = ref(false)
 
   async function fetchVideoList(pageNum = 1, pageSize = 10) {
@@ -26,6 +26,8 @@ export const useVideoStore = defineStore('video', () => {
     loading.value = true
     const res = await videoApi.getVideo(videoId)
     currentVideo.value = res.data
+    console.log('video',currentVideo);
+    
     loading.value = false
     return res.data
   }
@@ -33,6 +35,8 @@ export const useVideoStore = defineStore('video', () => {
   async function fetchHots(num = 10) {
     const res = await videoApi.getHots(num)
     hotVideos.value = res.data.tops
+    // console.log('hot',hotVideos.value);
+    
   }
 
   async function toggleLike(videoId: number) {
@@ -52,7 +56,11 @@ export const useVideoStore = defineStore('video', () => {
   }
 
   async function collect(videoId: number) {
-    return videoApi.collectVideo(videoId)
+    const res = await videoApi.collectVideo(videoId)
+    if (currentVideo.value && currentVideo.value.id === videoId) {
+      currentVideo.value = { ...currentVideo.value, ...res.data }
+    }
+    return res.data
   }
 
   async function fetchComments(videoId: number, pageNum = 1, pageSize = 10) {

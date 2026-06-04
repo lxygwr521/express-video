@@ -61,7 +61,7 @@ onMounted(loadProfile)
           <p class="text-sm text-gray-500">{{ profile.subscribeCount }} 订阅</p>
         </div>
         <el-button
-          v-if="auth.user?._id !== profile._id"
+          v-if="auth.user?.id !== profile.id"
           :type="isSubscribe ? 'default' : 'primary'"
           :loading="subLoading"
           @click="toggleSubscribe"

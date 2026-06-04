@@ -7,7 +7,7 @@ const router = require('./router')
 const app = express()
 // 请求体解析中间件，用于处理传入的请求体数据
 app.use(express.json())
-app.use(express.urlencoded())
+app.use(express.urlencoded({ extended: true }))
 //静态资源中间件
 app.use(express.static('public'))
 //跨域
@@ -17,6 +17,12 @@ app.use(cors())
 app.use(morgan('dev'))
 
 app.use('/api/v1', router)
+
+// 全局错误处理中间件（捕获异步路由中未处理的异常）
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err)
+  res.status(500).json({ error: '服务器内部错误，请稍后重试' })
+})
 
 // 路由级中间件：打印请求耗时
 const timingMiddleware = (req, res, next) => {

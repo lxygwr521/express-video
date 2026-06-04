@@ -20,7 +20,7 @@ const auth = useAuthStore()
       <p class="text-sm text-gray-700 break-words">{{ comment.content }}</p>
     </div>
     <el-button
-      v-if="auth.user?._id === comment.userId"
+      v-if="auth.user?.id === comment.userId"
       text
       type="danger"
       size="small"

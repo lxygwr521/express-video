@@ -19,22 +19,22 @@ export const videoApi = {
 
   // 热门排行
   getHots(num: number) {
-    return request.get<{ tops: Record<string, string> }>(`/video/gethots/${num}`)
+    return request.get<{ tops: Array<{ videoId: string; score: string; title: string }> }>(`/video/gethots/${num}`)
   },
 
   // 点赞/取消点赞
   likeVideo(videoId: number) {
-    return request.get<Video & { islike: boolean }>(`/video/like/${videoId}`)
+    return request.post<Video & { islike: boolean }>(`/video/like/${videoId}`)
   },
 
   // 踩/取消踩
   dislikeVideo(videoId: number) {
-    return request.get<Video & { isdislike: boolean }>(`/video/dislike/${videoId}`)
+    return request.post<Video & { isdislike: boolean }>(`/video/dislike/${videoId}`)
   },
 
   // 收藏视频
   collectVideo(videoId: number) {
-    return request.get(`/video/collect/${videoId}`)
+    return request.post(`/video/collect/${videoId}`)
   },
 
   // 我赞过的视频列表

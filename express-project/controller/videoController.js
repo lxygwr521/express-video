@@ -2,36 +2,56 @@ const prisma = require('../model/index')
 const { hotInc, topHots } = require('../model/redis/redishotsinc')
 
 exports.getHots = async (req, res) => {
-  var topnum = req.params.topnum
+  var topnum = parseInt(req.params.topnum)
   var tops = await topHots(topnum)
-  res.status(200).json({ tops })
+  // 从 Redis 拿到排序后的 videoId 列表，批量查 DB 获取标题
+  var videoIds = tops.map(item => parseInt(item.videoId))
+  var videos = await prisma.video.findMany({
+    where: { id: { in: videoIds } },
+    select: { id: true, title: true },
+  })
+  var titleMap = {}
+  videos.forEach(v => { titleMap[v.id] = v.title })
+  // 按 Redis 排序顺序组装结果
+  var result = tops.map(item => ({
+    videoId: item.videoId,
+    score: item.score,
+    title: titleMap[parseInt(item.videoId)] || '',
+  }))
+  res.status(200).json({ tops: result })
 }
 
 // 观看+1 点赞+2 评论+2  收藏+3
 
 exports.collect = async (req, res) => {
   const videoId = parseInt(req.params.videoId)
-  const userId = req.user.userinfo._id
+  const userId = req.user.userinfo.id
   const video = await prisma.video.findUnique({ where: { id: videoId } })
   if (!video) {
     return res.status(404).json({ err: '视频不存在' })
   }
 
+  let isCollect = true
   let doc = await prisma.collect.findUnique({
     where: { userId_videoId: { userId, videoId } },
   })
-  if (doc) {
-    return res.status(403).json({ err: '视频已被收藏' })
-  }
-  doc = await prisma.collect.create({ data: { userId, videoId } })
 
-  await hotInc(videoId, 3)
-  res.status(201).json({ mycollect: doc })
+  if (doc) {
+    // 已收藏 → 取消收藏
+    await prisma.collect.delete({ where: { id: doc.id } })
+    isCollect = false
+  } else {
+    // 未收藏 → 收藏
+    doc = await prisma.collect.create({ data: { userId, videoId } })
+    await hotInc(videoId, 3)
+  }
+
+  res.status(200).json({ isCollect })
 }
 
 exports.likelist = async (req, res) => {
   const { pageNum = 1, pageSize = 10 } = req.body
-  const userId = req.user.userinfo._id 
+  const userId = req.user.userinfo.id
   const skip = (pageNum - 1) * pageSize
 
   const [likes, likeCount] = await Promise.all([
@@ -48,13 +68,14 @@ exports.likelist = async (req, res) => {
 
 exports.dislikevideo = async (req, res) => {
   const videoId = parseInt(req.params.videoId)
-  const userId = req.user.userinfo._id
+  const userId = req.user.userinfo.id
   const video = await prisma.video.findUnique({ where: { id: videoId } })
   if (!video) {
     return res.status(404).json({ err: '视频不存在' })
   }
 
-  let isdislike = true
+  let isDislike 
+  let islike 
   let doc = await prisma.videolike.findUnique({
     where: { userId_videoId: { userId, videoId } },
   })
@@ -62,17 +83,23 @@ exports.dislikevideo = async (req, res) => {
   if (doc) {
     if (doc.like === -1) {
       await prisma.videolike.delete({ where: { id: doc.id } })
-      isdislike = false
+      //取消点踩 点赞状态不变
+      isDislike = false
     } else {
+      // 从点赞切换为点踩
       doc = await prisma.videolike.update({
         where: { id: doc.id },
         data: { like: -1 },
       })
+      //点踩 点赞状态取消
+      isDislike = true
+      islike = false
     }
   } else {
     doc = await prisma.videolike.create({
       data: { userId, videoId, like: -1 },
     })
+    isDislike = true
   }
 
   const [likeCount, dislikeCount] = await Promise.all([
@@ -83,19 +110,21 @@ exports.dislikevideo = async (req, res) => {
   res.status(200).json({
     ...video,
     ...{ likeCount, dislikeCount },
-    isdislike,
+    islike,
+    isDislike,
   })
 }
 
 exports.likevideo = async (req, res) => {
   const videoId = parseInt(req.params.videoId)
-  const userId = req.user.userinfo._id
+  const userId = req.user.userinfo.id
   const video = await prisma.video.findUnique({ where: { id: videoId } })
   if (!video) {
     return res.status(404).json({ err: '视频不存在' })
   }
 
-  let islike = true
+  let islike
+  let isDislike 
   let doc = await prisma.videolike.findUnique({
     where: { userId_videoId: { userId, videoId } },
   })
@@ -105,16 +134,20 @@ exports.likevideo = async (req, res) => {
       await prisma.videolike.delete({ where: { id: doc.id } })
       islike = false
     } else {
+      // 从点踩切换为点赞
       doc = await prisma.videolike.update({
         where: { id: doc.id },
         data: { like: 1 },
       })
+      islike = true
+      isDislike = false
       await hotInc(videoId, 2)
     }
   } else {
     doc = await prisma.videolike.create({
       data: { userId, videoId, like: 1 },
     })
+    islike = true
     await hotInc(videoId, 2)
   }
 
@@ -127,6 +160,7 @@ exports.likevideo = async (req, res) => {
     ...video,
     ...{ likeCount, dislikeCount },
     islike,
+    isDislike,
   })
 }
 
@@ -141,7 +175,7 @@ exports.deletecomment = async (req, res) => {
   if (!comment) {
     return res.status(404).json({ err: '评论不存在' })
   }
-  if (comment.userId !== req.user.userinfo._id) {
+  if (comment.userId !== (req.user.userinfo.id)) {
     return res.status(403).json({ err: '评论不可删除' })
   }
   await prisma.videocomment.delete({ where: { id: commentId } })
@@ -171,7 +205,7 @@ exports.comment = async (req, res) => {
   if (!videoInfo) {
     return res.status(404).json({ err: '视频不存在' })
   }
-  const userId = req.user.userinfo._id
+  const userId = req.user.userinfo.id
 
   const comment = await prisma.videocomment.create({
     data: { content: req.body.content, videoId, userId },
@@ -234,17 +268,22 @@ exports.video = async (req, res) => {
   videoInfo.islike = false
   videoInfo.isDislike = false
   videoInfo.isSubscribe = false
+  videoInfo.isCollect = false
 
-  if (req.user.userinfo) {
-    const userId = req.user.userinfo._id
-    const [islike, isDislike, isSubscribe] = await Promise.all([
+  if (req.user?.userinfo) {
+    //查询当前用户对当前视频点赞收藏情况
+    const userId = req.user.userinfo.id
+    const channelId = videoInfo.user?.id || videoInfo.userId
+    const [islike, isDislike, isSubscribe, isCollect] = await Promise.all([
       prisma.videolike.findFirst({ where: { userId, videoId, like: 1 } }),
       prisma.videolike.findFirst({ where: { userId, videoId, like: -1 } }),
-      prisma.subscribe.findFirst({ where: { userId, channelId: videoInfo.user._id } }),
+      prisma.subscribe.findFirst({ where: { userId, channelId } }),
+      prisma.collect.findFirst({ where: { userId, videoId } }),
     ])
     if (islike) videoInfo.islike = true
     if (isDislike) videoInfo.isDislike = true
     if (isSubscribe) videoInfo.isSubscribe = true
+    if (isCollect) videoInfo.isCollect = true
   }
   await hotInc(videoId, 1)
   res.status(200).json(videoInfo)
@@ -252,7 +291,7 @@ exports.video = async (req, res) => {
 
 exports.createvideo = async (req, res) => {
   var body = req.body
-  body.userId = req.user.userinfo._id
+  body.userId = req.user.userinfo.id
 
   try {
     var dbback = await prisma.video.create({ data: body })

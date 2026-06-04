@@ -10,13 +10,10 @@ exports.hotInc = async (videoId, incNum) => {
 }
 
 exports.topHots = async (num) => {
-  var paixu = await redis.zrevrange('videohots', 0, -1, 'withscores')
-  var newarr = paixu.slice(0, num * 2)
-  var obj = {}
-  for (let i = 0; i < newarr.length; i++){
-    if(i%2 == 0){
-      obj[newarr[i]] = newarr[i+1]
-    }
+  var paixu = await redis.zrevrange('videohots', 0, num - 1, 'withscores')
+  var list = []
+  for (let i = 0; i < paixu.length; i += 2) {
+    list.push({ videoId: paixu[i], score: paixu[i + 1] })
   }
-  return obj 
+  return list
 }

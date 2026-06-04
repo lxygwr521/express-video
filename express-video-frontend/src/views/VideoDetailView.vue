@@ -35,7 +35,11 @@ async function toggleLike() {
   const videoId = Number(route.params.id)
   likeLoading.value = true
   const res = await videoStore.toggleLike(videoId)
+  console.log('res',res);
+  
   if (video.value) video.value = { ...video.value, ...res }
+  console.log(video.value,'like');
+  
   likeLoading.value = false
 }
 
@@ -44,31 +48,46 @@ async function toggleDislike() {
   const videoId = Number(route.params.id)
   disLoading.value = true
   const res = await videoStore.toggleDislike(videoId)
+  console.log('res',res);
   if (video.value) video.value = { ...video.value, ...res }
+  console.log(video.value,'dislike');
+  
   disLoading.value = false
 }
 
 async function handleCollect() {
   if (!auth.isLoggedIn) return toast.info('请先登录')
+  const videoId = Number(route.params.id)
   collectLoading.value = true
-  await videoStore.collect(Number(route.params.id))
-  toast.success('收藏成功')
+  const res = await videoStore.collect(videoId)
+  console.log('collect',res);
+  
+  if (video.value) video.value = { ...video.value, ...res }
+  toast.success(res.isCollect ? '收藏成功' : '已取消收藏')
   collectLoading.value = false
 }
 
 async function handleSubscribe() {
   if (!auth.isLoggedIn || !video.value?.userId) return
   subLoading.value = true
-  if (video.value.isSubscribe) {
-    await userApi.unsubscribe(video.value.userId)
-    video.value.isSubscribe = false
-    toast.success('已取消关注')
-  } else {
-    await userApi.subscribe(video.value.userId)
-    video.value.isSubscribe = true
-    toast.success('关注成功')
+  try {
+    if (video.value.isSubscribe) {
+      const res = await userApi.unsubscribe(video.value.userId)
+      console.log(res,'unsub');
+      if (video.value) video.value = { ...video.value, ...res.data }
+      toast.success('已取消关注')
+    } else {
+      const res = await userApi.subscribe(video.value.userId)
+      console.log(res,'unsub');
+      if (video.value) video.value = { ...video.value, ...res.data }
+      toast.success('关注成功')
+    }
+  } catch (e: any) {
+    const msg = e.response?.data?.err || e.response?.data?.error || '操作失败'
+    toast.error(typeof msg === 'string' ? msg : '操作失败，请稍后重试')
+  } finally {
+    subLoading.value = false
   }
-  subLoading.value = false
 }
 
 onMounted(load)
@@ -86,15 +105,6 @@ onMounted(load)
       <el-card>
         <h1 class="text-lg font-bold mb-2">{{ video.title }}</h1>
         <p v-if="video.descrption" class="text-sm text-gray-600 mb-3">{{ video.descrption }}</p>
-        <div class="flex items-center gap-2 text-xs text-gray-400 mb-4">
-          <span>{{ video.likeCount }} 赞</span>
-          <el-divider direction="vertical" />
-          <span>{{ video.dislikeCount }} 踩</span>
-          <el-divider direction="vertical" />
-          <span>{{ video.commentCount }} 评论</span>
-          <el-divider direction="vertical" />
-          <span>{{ new Date(video.createAt).toLocaleString('zh-CN') }}</span>
-        </div>
 
         <!-- 作者 + 互动按钮 -->
         <div class="flex items-center justify-between flex-wrap gap-2">
@@ -106,8 +116,8 @@ onMounted(load)
 
           <div class="flex items-center gap-2">
             <el-button
-              v-if="auth.user?._id !== video.userId"
-              :type="video.isSubscribe ? 'default' : 'primary'"
+              v-if="auth.user?.id !== video.userId"
+              :type="video.isSubscribe ? 'primary' : 'default'"
               size="small"
               :loading="subLoading"
               :icon="Star"
@@ -136,12 +146,13 @@ onMounted(load)
             </el-button>
 
             <el-button
+              :type="video.isCollect ? 'primary' : 'default'"
               size="small"
               :loading="collectLoading"
               :icon="CollectionTag"
               @click="handleCollect"
             >
-              收藏
+              {{ video.isCollect ? '已收藏' : '收藏' }}
             </el-button>
           </div>
         </div>

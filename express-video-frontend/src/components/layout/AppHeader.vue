@@ -46,8 +46,8 @@ function handleLogout() {
         </el-button>
         <el-button
           text
-          :type="isActive('/channel') ? 'primary' : undefined"
-          @click="router.push('/channel')"
+          :type="isActive('/subscribe') ? 'primary' : undefined"
+          @click="router.push('/subscribe')"
         >我的订阅</el-button>
         <el-button
           text
@@ -63,7 +63,7 @@ function handleLogout() {
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="router.push(`/user/${auth.user?._id}`)">
+              <el-dropdown-item @click="router.push(`/user/${auth.user?.id}`)">
                 <el-icon><User /></el-icon> 我的频道
               </el-dropdown-item>
               <el-dropdown-item divided @click="handleLogout">

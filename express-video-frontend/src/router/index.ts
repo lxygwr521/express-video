@@ -42,9 +42,9 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/channel',
-    name: 'MyChannel',
-    component: () => import('@/views/MyChannelView.vue'),
+    path: '/subscribe',
+    name: 'MySubscribe',
+    component: () => import('@/views/MySubscribe.vue'),
     meta: { requiresAuth: true },
   },
 ]

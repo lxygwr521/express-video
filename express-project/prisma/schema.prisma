@@ -40,7 +40,7 @@ model Video {
   updateAt      DateTime        @updatedAt
 
   user          User            @relation(fields: [userId], references: [id])
-  videocomments Videocomment[]
+  videocomments Videocomment[]   
   videolikes    Videolike[]
   collects      Collect[]
 

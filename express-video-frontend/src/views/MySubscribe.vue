@@ -24,10 +24,10 @@ onMounted(async () => {
     <el-empty v-else-if="!channels.length" description="还没有关注任何频道" />
     <div v-else class="space-y-2">
       <el-card
-        v-for="ch in channels" :key="ch._id"
+        v-for="ch in channels" :key="ch.id"
         shadow="hover"
         class="cursor-pointer"
-        @click="router.push(`/user/${ch._id}`)"
+        @click="router.push(`/user/${ch.id}`)"
       >
         <div class="flex items-center gap-3">
           <el-avatar v-if="ch.image" :src="ch.image" :size="44" />
