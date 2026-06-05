@@ -63,7 +63,7 @@ function handleLogout() {
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="router.push(`/user/${auth.user?.id}`)">
+              <el-dropdown-item @click="router.push('/channel')">
                 <el-icon><User /></el-icon> 我的频道
               </el-dropdown-item>
               <el-dropdown-item divided @click="handleLogout">

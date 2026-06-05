@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { videoApi } from '@/api/video'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
@@ -41,7 +41,6 @@ function loadAliplayerScript(): Promise<void> {
 // 初始化播放器
 function initPlayer() {
   if (!playerContainer.value || !playURL.value) return
-
   // 销毁旧实例
   if (aliplayer) {
     aliplayer.dispose()
@@ -55,7 +54,7 @@ function initPlayer() {
   }
 
   aliplayer = new Aliplayer({
-    id: playerContainer.value,
+    id: 'aliplayer-container',
     source: playURL.value,
     width: '100%',
     height: '100%',
@@ -94,16 +93,17 @@ async function loadPlayInfo() {
 
     // 2. 获取播放地址
     const res = await videoApi.getPlayInfo(props.vodVideoId)
+    console.log('播放地址',res);
+    
     playURL.value = res.data.defaultPlayURL
     videoTitle.value = res.data.videoBase?.Title || ''
     coverURL.value = res.data.videoBase?.CoverURL || ''
 
     // 3. 初始化播放器
     // 等 DOM 更新后再初始化
-    setTimeout(() => {
-      initPlayer()
-      loading.value = false
-    }, 50)
+    loading.value = false
+    await nextTick()
+    initPlayer()
   } catch (e: any) {
     console.error('[VideoPlayer] 加载失败:', e)
     error.value = e?.response?.data?.error || e?.message || '视频加载失败'
@@ -155,7 +155,7 @@ watch(() => props.vodVideoId, () => {
     <!-- 播放器容器 -->
     <div
       v-else
-      ref="playerContainer"
+      id="aliplayer-container" ref="playerContainer"
       class="player-container aspect-video"
     />
   </div>

@@ -1,5 +1,6 @@
 const prisma = require('../model/index')
-const { hotInc, topHots } = require('../model/redis/redishotsinc')
+const { hotInc, topHots, hotRemove } = require('../model/redis/redishotsinc')
+const { getVodClient } = require('./vodController')
 
 exports.getHots = async (req, res) => {
   var topnum = parseInt(req.params.topnum)
@@ -236,7 +237,6 @@ exports.videolist = async (req, res) => {
     commentCount: v._count.videocomments,
     _count: undefined,
   }))
-
   res.status(200).json({ videolist: list, getvideoCount })
 }
 
@@ -292,10 +292,101 @@ exports.video = async (req, res) => {
 exports.createvideo = async (req, res) => {
   var body = req.body
   body.userId = req.user.userinfo.id
-
+ console.log(req);
+ 
   try {
     var dbback = await prisma.video.create({ data: body })
+
+    // 如果未手动设置封面且是 VOD 上传，从阿里云获取封面并回写数据库
+    if (!body.cover && body.vodvideoId) {
+      try {
+        const client = getVodClient()
+        const vodRes = await client.request('GetVideoInfo', { VideoId: body.vodvideoId }, {})
+        if (vodRes.Video?.CoverURL) {
+          await prisma.video.update({
+            where: { id: dbback.id },
+            data: { cover: vodRes.Video.CoverURL },
+          })
+          dbback.cover = vodRes.Video.CoverURL
+        }
+      } catch (e) {
+        console.error('获取VOD封面失败:', e.message)
+      }
+    }
+
     res.status(201).json({ dbback })
+  } catch (error) {
+    res.status(500).json({ err: error })
+  }
+}
+
+// 获取当前用户的视频列表（我的频道）
+exports.getMyVideos = async (req, res) => {
+  const userId = req.user.userinfo.id
+  const { pageNum = 1, pageSize = 10 } = req.body
+  const skip = (pageNum - 1) * pageSize
+
+  try {
+    const [videos, total] = await Promise.all([
+      prisma.video.findMany({
+        where: { userId },
+        skip,
+        take: pageSize,
+        orderBy: { createAt: 'desc' },
+        include: { _count: { select: { videocomments: true } } },
+      }),
+      prisma.video.count({ where: { userId } }),
+    ])
+
+    const list = videos.map(v => ({
+      ...v,
+      commentCount: v._count.videocomments,
+      _count: undefined,
+    }))
+
+    res.status(200).json({ videos: list, total })
+  } catch (error) {
+    res.status(500).json({ err: error })
+  }
+}
+
+// 删除视频（仅限视频所有者）
+exports.deleteVideo = async (req, res) => {
+  const videoId = parseInt(req.params.videoId)
+  const userId = req.user.userinfo.id
+
+  try {
+    const video = await prisma.video.findUnique({ where: { id: videoId } })
+    if (!video) {
+      return res.status(404).json({ err: '视频不存在' })
+    }
+    if (video.userId !== userId) {
+      return res.status(403).json({ err: '无权删除此视频' })
+    }
+
+    // 事务删除视频及所有关联数据
+    await prisma.$transaction(async (tx) => {
+      await tx.collect.deleteMany({ where: { videoId } })
+      await tx.videolike.deleteMany({ where: { videoId } })
+      await tx.videocomment.deleteMany({ where: { videoId } })
+      await tx.video.delete({ where: { id: videoId } })
+    })
+
+    // 清除 Redis 中的热度数据
+    await hotRemove(videoId)
+
+    // 同步删除 VOD 中的视频文件
+    if (video.vodvideoId) {
+      try {
+        const client = getVodClient()
+        await client.request('DeleteVideo', { VideoIds: video.vodvideoId }, {})
+      } catch (e) {
+        // VOD 删除失败记录日志但不影响整体结果（DB 已清）
+        console.error('VOD 视频删除失败:', e.message)
+      }
+    }
+
+    res.status(200).json({ msg: '视频已删除' })
   } catch (error) {
     res.status(500).json({ err: error })
   }

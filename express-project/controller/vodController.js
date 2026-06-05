@@ -13,7 +13,7 @@ function initVodClient(accessKeyId, accessKeySecret) {
 }
 
 // 获取 VOD 客户端（从环境变量读取凭证）
-function getVodClient() {
+exports.getVodClient = function () {
   const accessKeyId = process.env.ALIYUN_ACCESS_KEY_ID;
   const accessKeySecret = process.env.ALIYUN_ACCESS_KEY_SECRET;
   if (!accessKeyId || !accessKeySecret) {
@@ -22,18 +22,33 @@ function getVodClient() {
   return initVodClient(accessKeyId, accessKeySecret);
 }
 
-// 获取阿里云VOD上传凭证（用于客户端直接上传到 VOD，无需经过业务服务器）
+// 获取阿里云VOD上传凭证和地址（前端用此凭证将视频文件直传到 VOD）
 exports.getvod = async (req, res) => {
   try {
-    var client = getVodClient();
+    const { title, fileName } = req.query;
+    if (!title || !fileName) {
+      return res.status(400).json({ error: '缺少 title 或 fileName 参数' });
+    }
+    var client = exports.getVodClient();
     const vodback = await client.request("CreateUploadVideo", {
-      Title: 'this is a sample',
-      FileName: 'filename.mp4'
+      Title: title,
+      FileName: fileName,
     }, {});
-    res.status(200).json({ vod: vodback });
+    // 返回 VideoId、UploadAddress、UploadAuth 给前端
+    res.status(200).json(vodback);
   } catch (error) {
     console.error('获取VOD上传凭证失败:', error);
-    res.status(500).json({ error: '获取上传凭证失败' });
+    // 打印阿里云 API 返回的详细错误
+    if (error.data) console.error('API 错误详情:', JSON.stringify(error.data));
+    if (error.code) console.error('错误码:', error.code);
+    res.status(500).json({
+      error: '获取上传凭证失败',
+      detail: {
+        code: error.code || 'UNKNOWN',
+        message: error.message || String(error),
+        data: error.data || null,
+      },
+    });
   }
 };
 
@@ -45,7 +60,7 @@ exports.getPlayInfo = async (req, res) => {
       return res.status(400).json({ error: '缺少视频ID' });
     }
 
-    var client = getVodClient();
+    var client = exports.getVodClient();
     const result = await client.request("GetPlayInfo", {
       VideoId: videoId
     }, {});

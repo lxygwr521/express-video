@@ -1,32 +1,46 @@
 {
-  // 使用 IntelliSense 了解相关属性。 
-  // 悬停以查看现有属性的描述。
-  // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
     {
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "name": "nodemon",
-      "program": "${workspaceFolder}/app.js",
-      "request": "launch",
-      "restart": true,
-      "runtimeExecutable": "nodemon",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "type": "node"
-    },
-    {
+      "name": "Debug Backend (nodemon)",
       "type": "node",
       "request": "launch",
-      "name": "启动程序",
+      "runtimeExecutable": "${workspaceFolder}/express-project/node_modules/.bin/nodemon",
+      "program": "${workspaceFolder}/express-project/app.js",
+      "cwd": "${workspaceFolder}/express-project",
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}\\express-project\\controller\\userController.js",
-      "outFiles": [
-        "${workspaceFolder}/**/*.js"
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "name": "Debug Backend (node, no restart)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/express-project/app.js",
+      "cwd": "${workspaceFolder}/express-project",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "name": "Attach to Process",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "skipFiles": [
+        "<node_internals>/**"
       ]
     }
   ]

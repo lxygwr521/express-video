@@ -9,6 +9,10 @@ exports.hotInc = async (videoId, incNum) => {
   return
 }
 
+exports.hotRemove = async (videoId) => {
+  return redis.zrem('videohots', videoId)
+}
+
 exports.topHots = async (num) => {
   var paixu = await redis.zrevrange('videohots', 0, num - 1, 'withscores')
   var list = []

@@ -57,9 +57,24 @@ export const videoApi = {
     return request.delete(`/video/comment/${videoId}/${commentId}`)
   },
 
-  // 获取 VOD 上传凭证
-  getVodCredential() {
-    return request.get('/video/getvod')
+  // 我的视频列表
+  getMyVideos(pageNum = 1, pageSize = 10) {
+    return request.post<{ videos: Video[]; total: number }>('/video/myvideos', { pageNum, pageSize })
+  },
+
+  // 删除视频
+  deleteVideo(videoId: number) {
+    return request.delete(`/video/${videoId}`)
+  },
+
+  // 获取 VOD 上传凭证（返回 VideoId, UploadAddress, UploadAuth）
+  getVodCredential(title: string, fileName: string) {
+    return request.get<{
+      VideoId: string
+      UploadAddress: string
+      UploadAuth: string
+      RequestId: string
+    }>('/video/getvod', { params: { title, fileName } })
   },
 
   // 获取 VOD 视频播放信息（根据 vodVideoId 获取实际播放 URL）

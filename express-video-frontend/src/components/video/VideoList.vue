@@ -13,7 +13,9 @@ const { pageNum, totalPages, loading, loadPage, goTo } = usePagination(
   (page, size) => store.fetchVideoList(page, size)
 )
 
-onMounted(() => loadPage(1))
+onMounted(() => {
+  loadPage(1)  
+  })
 </script>
 
 <template>

@@ -27,7 +27,6 @@ export interface VideoForm {
   title: string
   descrption?: string
   vodvideoId: string
-  cover?: string
 }
 
 export interface Comment {
