@@ -292,28 +292,28 @@ exports.video = async (req, res) => {
 exports.createvideo = async (req, res) => {
   var body = req.body
   body.userId = req.user.userinfo.id
- console.log(req);
- 
   try {
     var dbback = await prisma.video.create({ data: body })
-
-    // 如果未手动设置封面且是 VOD 上传，从阿里云获取封面并回写数据库
+    // VOD 上传的封面是异步生成的，先同步等一次
     if (!body.cover && body.vodvideoId) {
+      const vodVideoId = body.vodvideoId
+      const videoId = dbback.id
+      // 同步等待一次：等 5 秒后尝试获取封面，大部分视频此时封面已就绪
       try {
+        await new Promise(r => setTimeout(r, 5000))
         const client = getVodClient()
-        const vodRes = await client.request('GetVideoInfo', { VideoId: body.vodvideoId }, {})
+        const vodRes = await client.request('GetVideoInfo', { VideoId: vodVideoId }, {})
         if (vodRes.Video?.CoverURL) {
+          dbback.cover = vodRes.Video.CoverURL
           await prisma.video.update({
-            where: { id: dbback.id },
+            where: { id: videoId },
             data: { cover: vodRes.Video.CoverURL },
           })
-          dbback.cover = vodRes.Video.CoverURL
         }
       } catch (e) {
-        console.error('获取VOD封面失败:', e.message)
+        console.error('同步获取封面失败:', e.message)
       }
     }
-
     res.status(201).json({ dbback })
   } catch (error) {
     res.status(500).json({ err: error })

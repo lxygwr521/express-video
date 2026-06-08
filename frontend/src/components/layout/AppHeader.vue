@@ -75,8 +75,8 @@ function handleLogout() {
       </template>
 
       <template v-else>
-        <el-button text @click="router.push('/login')">登录</el-button>
-        <el-button type="primary" size="small" @click="router.push('/register')">注册</el-button>
+        <el-button :type="isActive('/login') ? 'primary': undefined" text @click="router.push('/login')">登录</el-button>
+        <el-button :type="isActive('/register') ? 'primary': undefined" text  @click="router.push('/register')">注册</el-button>
       </template>
     </div>
   </div>

@@ -1,13 +1,14 @@
 {
   "version": "0.2.0",
   "configurations": [
+    
     {
       "name": "Debug Backend (nodemon)",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "${workspaceFolder}/express-project/node_modules/.bin/nodemon",
-      "program": "${workspaceFolder}/express-project/app.js",
-      "cwd": "${workspaceFolder}/express-project",
+      "runtimeExecutable": "${workspaceFolder}/express-video/node_modules/.bin/nodemon",
+      "program": "${workspaceFolder}/express-video/app.js",
+      "cwd": "${workspaceFolder}/express-video",
       "restart": true,
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
@@ -22,8 +23,8 @@
       "name": "Debug Backend (node, no restart)",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/express-project/app.js",
-      "cwd": "${workspaceFolder}/express-project",
+      "program": "${workspaceFolder}/express-video/app.js",
+      "cwd": "${workspaceFolder}/express-video",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "skipFiles": [
