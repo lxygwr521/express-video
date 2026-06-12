@@ -54,6 +54,11 @@ function handleLogout() {
           :type="isActive('/liked') ? 'primary' : undefined"
           @click="router.push('/liked')"
         >赞过</el-button>
+        <el-button
+          text
+          :type="isActive('/chat') || route.path.startsWith('/chat') ? 'primary' : undefined"
+          @click="router.push('/chat')"
+        >消息</el-button>
 
         <el-dropdown trigger="click">
           <span class="flex items-center gap-2 cursor-pointer">

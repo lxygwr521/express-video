@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { userApi } from '@/api/user'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
@@ -9,6 +9,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { UserFilled } from '@element-plus/icons-vue'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const toast = useToast()
 
@@ -42,7 +43,10 @@ async function toggleSubscribe() {
   }
   subLoading.value = false
 }
-
+function sendMessages() {
+  if (!auth.isLoggedIn) return toast.info('请先登录')
+  router.push(`/chat/${route.params.id}`)
+}
 onMounted(loadProfile)
 </script>
 
@@ -67,6 +71,14 @@ onMounted(loadProfile)
           @click="toggleSubscribe"
         >
           {{ isSubscribe ? '已关注' : '+ 关注' }}
+        </el-button>
+        <el-button
+          v-if="auth.user?.id !== profile.id"
+          type="primary"
+          :loading="subLoading"
+          @click="sendMessages()"
+        >
+          发消息
         </el-button>
       </div>
       <div v-if="profile.channeldes" class="px-6 pb-4 text-sm text-gray-600">

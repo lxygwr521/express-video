@@ -1,10 +1,17 @@
 require('dotenv').config()
 const express = require('express')
+const http = require('http')
 const cors = require('cors')
 const morgan = require('morgan')
 const router = require('./router')
+const { setupWebSocket } = require('./model/websocket')
 
 const app = express()
+const server = http.createServer(app)
+
+// 挂载 WebSocket 到同一个 HTTP Server
+setupWebSocket(server)
+
 // 请求体解析中间件，用于处理传入的请求体数据
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
@@ -40,6 +47,6 @@ app.get('/ping', timingMiddleware, (req, res) => {
 })
 
 const PORT = process.env.PORT || 3000
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`)
 })

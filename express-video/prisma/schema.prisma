@@ -25,8 +25,41 @@ model User {
   videocomments  Videocomment[]
   videolikes     Videolike[]
   collects       Collect[]
+  sentMessages       Message[]       @relation("Sender")
+  conversationsAs1   Conversation[]  @relation("User1")
+  conversationsAs2   Conversation[]  @relation("User2")
 
   @@map("users")
+}
+
+model Conversation {
+  id            Int       @id @default(autoincrement())
+  user1Id       Int
+  user2Id       Int
+  lastMessage   String?   @db.Text
+  lastMessageAt DateTime?
+  createAt      DateTime  @default(now())
+  updateAt      DateTime  @updatedAt
+
+  user1         User      @relation("User1", fields: [user1Id], references: [id])
+  user2         User      @relation("User2", fields: [user2Id], references: [id])
+  messages      Message[]
+
+  @@unique([user1Id, user2Id])
+  @@map("conversations")
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  senderId       Int
+  content        String       @db.Text
+  createAt       DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  sender         User         @relation("Sender", fields: [senderId], references: [id])
+
+  @@map("messages")
 }
 
 model Video {

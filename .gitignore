@@ -1,7 +1,8 @@
 .DS_Store
 node_modules
 /dist
-
+.CLAUDE.md
+/websocket-plan-ethereal-hartmanis.md
 # local env files
 .env
 .env.local

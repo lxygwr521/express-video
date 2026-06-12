@@ -1,10 +1,22 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
 import AppHeader from '@/components/layout/AppHeader.vue'
 
 const auth = useAuthStore()
-onMounted(() => auth.restoreUser())
+const chat = useChatStore()
+
+onMounted(() => {
+  auth.restoreUser()
+  if (auth.isLoggedIn) chat.connect()
+})
+
+// 登录/登出时自动连接/断开 WebSocket
+watch(() => auth.isLoggedIn, (loggedIn) => {
+  if (loggedIn) chat.connect()
+  else chat.disconnect()
+})
 </script>
 
 <template>

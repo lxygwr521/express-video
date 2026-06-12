@@ -53,6 +53,18 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/MySubscribe.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/chat',
+    name: 'Chat',
+    component: () => import('@/views/ChatView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/chat/:userId',
+    name: 'ChatWithUser',
+    component: () => import('@/views/ChatView.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 
 const router = createRouter({
