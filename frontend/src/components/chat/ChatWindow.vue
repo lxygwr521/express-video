@@ -51,15 +51,7 @@ function handleScroll() {
 <template>
   <div class="flex flex-col h-full">
     <!-- 顶部标题栏 -->
-    <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white shrink-0">
-      <el-avatar
-        v-if="chat.currentOtherUser?.image"
-        :src="chat.currentOtherUser.image"
-        :size="36"
-      />
-      <el-avatar v-else :size="36">
-        {{ chat.currentOtherUser?.username?.charAt(0)?.toUpperCase() }}
-      </el-avatar>
+    <div class="flex items-center justify-center gap-3 px-4 py-3 border-b border-gray-100 bg-white shrink-0">
       <span class="font-medium">{{ chat.currentOtherUser?.username }}</span>
     </div>
 

@@ -14,7 +14,6 @@ const playerContainer = ref<HTMLDivElement>()
 const playURL = ref('')
 const videoTitle = ref('')
 const coverURL = ref('')
-
 let aliplayer: any = null
 let scriptLoaded = false
 

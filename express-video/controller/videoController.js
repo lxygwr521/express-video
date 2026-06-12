@@ -193,11 +193,32 @@ exports.commentlist = async (req, res) => {
       where: { videoId },
       skip,
       take: pageSize,
-      include: { user: { select: { id: true, username: true, image: true } } },
+      include: { user: { select: { id: true, username: true, image: true, subscribeCount: true } } },
     }),
     prisma.videocomment.count({ where: { videoId } }),
   ])
-  res.status(200).json({ comments, commentCount })
+
+  // 已登录用户查询对评论者的关注状态
+  let subscribedUserIds = new Set()
+  if (req.user?.userinfo) {
+    const userId = req.user.userinfo.id
+    const commentUserIds = [...new Set(comments.map(c => c.userId))]
+    const subs = await prisma.subscribe.findMany({
+      where: { userId, channelId: { in: commentUserIds } },
+      select: { channelId: true },
+    })
+    subscribedUserIds = new Set(subs.map(s => s.channelId))
+  }
+   
+  const list = comments.map(c => ({
+    ...c,
+    user: {
+      ...c.user,
+      isSubscribed: subscribedUserIds.has(c.userId),
+    },
+  }))
+
+  res.status(200).json({ comments: list, commentCount })
 }
 
 exports.comment = async (req, res) => {
@@ -245,7 +266,7 @@ exports.video = async (req, res) => {
   var videoInfo = await prisma.video.findUnique({
     where: { id: videoId },
     include: {
-      user: { select: { id: true, username: true, image: true } },
+      user: { select: { id: true, username: true, image: true, subscribeCount: true } },
       _count: { select: { videocomments: true } },
     },
   })

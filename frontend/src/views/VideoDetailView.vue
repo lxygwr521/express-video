@@ -8,6 +8,7 @@ import { useToast } from '@/composables/useToast'
 import type { Video } from '@/types/video'
 import VideoPlayer from '@/components/common/VideoPlayer.vue'
 import CommentList from '@/components/comment/CommentList.vue'
+import UserPopover from '@/components/user/UserPopover.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { Pointer, CollectionTag, Star } from '@element-plus/icons-vue'
 
@@ -108,11 +109,13 @@ onMounted(load)
 
         <!-- 作者 + 互动按钮 -->
         <div class="flex items-center justify-between flex-wrap gap-2">
-          <div class="flex items-center gap-2 cursor-pointer" @click="router.push(`/user/${video.userId}`)">
-            <el-avatar v-if="video.user?.image" :src="video.user.image" :size="36" />
-            <el-avatar v-else :size="36">{{ video.user?.username?.charAt(0)?.toUpperCase() }}</el-avatar>
-            <span class="font-medium text-sm">{{ video.user?.username }}</span>
-          </div>
+          <UserPopover v-if="video.user" :user="{ id: video.user.id, username: video.user.username, image: video.user.image, subscribeCount: (video.user as any).subscribeCount, isSubscribed: video.isSubscribe }">
+            <div class="flex items-center gap-2 cursor-pointer" @click="router.push(`/user/${video.userId}`)">
+              <el-avatar v-if="video.user?.image" :src="video.user.image" :size="36" />
+              <el-avatar v-else :size="36">{{ video.user?.username?.charAt(0)?.toUpperCase() }}</el-avatar>
+              <span class="font-medium text-sm">{{ video.user?.username }}</span>
+            </div>
+          </UserPopover>
 
           <div class="flex items-center gap-2">
             <el-button

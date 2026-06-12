@@ -12,7 +12,7 @@ router
   .post('/dislike/:videoId', verifyToken(), videoController.dislikevideo)
   .post('/like/:videoId', verifyToken(), videoController.likevideo)
   .delete('/comment/:videoId/:commentId', verifyToken(), videoController.deletecomment)
-  .post('/commentlist/:videoId', videoController.commentlist)
+  .post('/commentlist/:videoId', verifyToken(false), videoController.commentlist)
   .post('/comment/:videoId', verifyToken(), videoController.comment)
   .post('/videolist', videoController.videolist)
   .post('/myvideos', verifyToken(), videoController.getMyVideos)

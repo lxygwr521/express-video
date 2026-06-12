@@ -194,7 +194,7 @@ exports.login = async (req, res) => {
       where: { email: req.body.email },
     })
     if (!user || !verifyPassword(req.body.password, user.password)) {
-      return res.status(402).json({ error: '邮箱或者密码不正确' })
+      return res.status(401).json({ error: '邮箱或者密码不正确' })
     }
 
     const { password: _, ...dbBack } = user

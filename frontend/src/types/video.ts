@@ -40,5 +40,7 @@ export interface Comment {
     id: number
     username: string
     image: string | null
+    subscribeCount?: number
+    isSubscribed?: boolean
   }
 }
