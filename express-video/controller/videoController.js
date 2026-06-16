@@ -1,6 +1,7 @@
 const prisma = require('../model/index')
 const { hotInc, topHots, hotRemove } = require('../model/redis/redishotsinc')
 const { getVodClient } = require('./vodController')
+const { toggleLike, toggleDislike, toggleCollect, getUserVideoStatus } = require('../model/redis/likeLua')
 
 exports.getHots = async (req, res) => {
   var topnum = parseInt(req.params.topnum)
@@ -44,9 +45,11 @@ exports.collect = async (req, res) => {
   } else {
     // 未收藏 → 收藏
     doc = await prisma.collect.create({ data: { userId, videoId } })
-    await hotInc(videoId, 3)
+    isCollect = true
   }
-
+  // Redis 原子更新收藏状态 + 热度（不阻塞响应）
+  toggleCollect(userId, videoId).catch(e => console.error('Redis 收藏同步失败:', e.message))
+   
   res.status(200).json({ isCollect })
 }
 
@@ -84,15 +87,12 @@ exports.dislikevideo = async (req, res) => {
   if (doc) {
     if (doc.like === -1) {
       await prisma.videolike.delete({ where: { id: doc.id } })
-      //取消点踩 点赞状态不变
       isDislike = false
     } else {
-      // 从点赞切换为点踩
       doc = await prisma.videolike.update({
         where: { id: doc.id },
         data: { like: -1 },
       })
-      //点踩 点赞状态取消
       isDislike = true
       islike = false
     }
@@ -102,6 +102,8 @@ exports.dislikevideo = async (req, res) => {
     })
     isDislike = true
   }
+  // Redis 原子更新点踩状态 + 热度
+  toggleDislike(userId, videoId).catch(e => console.error('Redis 点踩同步失败:', e.message))
 
   const [likeCount, dislikeCount] = await Promise.all([
     prisma.videolike.count({ where: { videoId, like: 1 } }),
@@ -135,22 +137,21 @@ exports.likevideo = async (req, res) => {
       await prisma.videolike.delete({ where: { id: doc.id } })
       islike = false
     } else {
-      // 从点踩切换为点赞
       doc = await prisma.videolike.update({
         where: { id: doc.id },
         data: { like: 1 },
       })
       islike = true
       isDislike = false
-      await hotInc(videoId, 2)
     }
   } else {
     doc = await prisma.videolike.create({
       data: { userId, videoId, like: 1 },
     })
     islike = true
-    await hotInc(videoId, 2)
   }
+  // Redis 原子更新点赞状态 + 热度
+  toggleLike(userId, videoId).catch(e => console.error('Redis 点赞同步失败:', e.message))
 
   const [likeCount, dislikeCount] = await Promise.all([
     prisma.videolike.count({ where: { videoId, like: 1 } }),
@@ -292,19 +293,31 @@ exports.video = async (req, res) => {
   videoInfo.isCollect = false
 
   if (req.user?.userinfo) {
-    //查询当前用户对当前视频点赞收藏情况
     const userId = req.user.userinfo.id
     const channelId = videoInfo.user?.id || videoInfo.userId
-    const [islike, isDislike, isSubscribe, isCollect] = await Promise.all([
-      prisma.videolike.findFirst({ where: { userId, videoId, like: 1 } }),
-      prisma.videolike.findFirst({ where: { userId, videoId, like: -1 } }),
-      prisma.subscribe.findFirst({ where: { userId, channelId } }),
-      prisma.collect.findFirst({ where: { userId, videoId } }),
-    ])
-    if (islike) videoInfo.islike = true
-    if (isDislike) videoInfo.isDislike = true
+
+    // 优先从 Redis 走 Pipeline 查询点赞/点踩/收藏状态（3 次 SISMEMBER 一次网络往返）
+    const redisStatus = await getUserVideoStatus(userId, videoId).catch(() => null)
+
+    if (redisStatus) {
+      videoInfo.islike = redisStatus.isLiked
+      videoInfo.isDislike = redisStatus.isDisliked
+      videoInfo.isCollect = redisStatus.isCollected
+    } else {
+      // Redis 未命中，回退 DB 查询
+      const [islike, isDislike, isCollect] = await Promise.all([
+        prisma.videolike.findFirst({ where: { userId, videoId, like: 1 } }),
+        prisma.videolike.findFirst({ where: { userId, videoId, like: -1 } }),
+        prisma.collect.findFirst({ where: { userId, videoId } }),
+      ])
+      if (islike) videoInfo.islike = true
+      if (isDislike) videoInfo.isDislike = true
+      if (isCollect) videoInfo.isCollect = true
+    }
+
+    // 订阅状态仍走 DB（未缓存到 Redis）
+    const isSubscribe = await prisma.subscribe.findFirst({ where: { userId, channelId } })
     if (isSubscribe) videoInfo.isSubscribe = true
-    if (isCollect) videoInfo.isCollect = true
   }
   await hotInc(videoId, 1)
   res.status(200).json(videoInfo)

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { io, Socket } from 'socket.io-client'
 import { chatApi } from '@/api/chat'
 import type { ChatMessage, ConversationInfo } from '@/types/chat'
-
+//管理会话
 export const useChatStore = defineStore('chat', () => {
   // --- 状态 ---
   const socket = ref<Socket | null>(null)

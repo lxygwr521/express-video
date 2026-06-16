@@ -17,7 +17,7 @@ router
   .post('/videolist', videoController.videolist)
   .post('/myvideos', verifyToken(), videoController.getMyVideos)
   .delete('/:videoId', verifyToken(), videoController.deleteVideo)
-  .get('/video/:videoId', verifyToken(false), videoController.video) //查数据库，拿"视频信息"
+  .get('/video/:videoId', verifyToken(false), videoController.video) //查数据库，拿"视频信息（作者 点赞量等）"
   .get('/getvod', verifyToken(), vodController.getvod)
   .get('/playinfo/:videoId', verifyToken(false), vodController.getPlayInfo) //调阿里云，拿"播放流" 返回的是给播放器用的数据：视频流地址。
   .post('/createvideo', verifyToken(), videoValidator, videoController.createvideo)

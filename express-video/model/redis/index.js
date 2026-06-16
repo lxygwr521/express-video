@@ -10,8 +10,15 @@ redis.on('error', err => {
   }
 })
 
-redis.on('ready', () => {
+redis.on('ready', async () => {
   console.log('Redis链接成功');
+  // 加载 Lua 脚本到 Redis 服务器
+  try {
+    const { initLuaScripts } = require('./likeLua')
+    await initLuaScripts()
+  } catch (e) {
+    console.error('Lua 脚本初始化失败:', e.message)
+  }
 })
 
 exports.redis = redis

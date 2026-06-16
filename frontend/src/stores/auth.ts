@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { userApi } from '@/api/user'
 import type { User, LoginForm, RegisterForm } from '@/types/user'
-
+//管理用户的登录/登出状态 用户token的存储
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const isLoggedIn = computed(() => !!user.value)
