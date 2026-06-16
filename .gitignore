@@ -1,5 +1,6 @@
 .DS_Store
 node_modules
+dump.rdb
 /dist
 /CLAUDE.md
 /websocket-plan-ethereal-hartmanis.md

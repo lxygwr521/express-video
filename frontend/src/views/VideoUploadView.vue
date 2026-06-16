@@ -186,12 +186,27 @@ async function handleUpload() {
       descrption: form.descrption || undefined,
       vodvideoId: uploadedVideoId,
     })
+    const videoId = createRes.data.dbback.id
 
-    uploadStage.value = 'done'
-    toast.success('视频发布成功！')
-    setTimeout(() => {
-      router.push(`/video/${createRes.data.dbback.id}`)
+    // 6. 轮询等待 VOD 截图回调更新封面（最多等 30 秒）
+    let coverReady = false
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => setTimeout(r, 1000))
+      const detail = await videoApi.getVideo(videoId)
+      if (detail.data.cover) {
+        coverReady = true
+        break
+      }
+    }
+    if (coverReady) {
+      uploadStage.value = 'done'
+      toast.success('视频发布成功！')
+      setTimeout(() => {
+      router.push(`/video/${videoId}`)
     }, 600)
+    }
+
+
   } catch (e: any) {
     if (!uploadErrorHandled.value) {
       const msg = e?.response?.data?.error || e?.message || '上传失败'

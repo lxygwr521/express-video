@@ -52,6 +52,42 @@ exports.getvod = async (req, res) => {
   }
 };
 
+// 接收阿里云 VOD 截图完成回调，更新数据库中的视频封面
+exports.vodCallback = async (req, res) => {
+  try {
+    const { EventType, VideoId, Status, CoverUrl } = req.body;
+    if (EventType !== 'SnapshotComplete') {
+      return res.status(400).json({ error: '非截图事件' });
+    }
+    if (!VideoId) {
+      return res.status(400).json({ error: '缺少 VideoId' });
+    }
+    if (Status !== 'success' || !CoverUrl) {
+      console.log(`VOD 截图回调: VideoId=${VideoId} 截图未成功或无封面`);
+      return res.status(400).json({ error: '截图未成功' });
+    }
+
+    const prisma = require('../model/index');
+    const video = await prisma.video.findFirst({
+      where: { vodvideoId: VideoId },
+    });
+    if (!video) {
+      console.log(`VOD 截图回调: 未找到 vodvideoId=${VideoId} 对应的视频记录`);
+      return res.status(404).json({ error: '视频不存在' });
+    }
+
+    await prisma.video.update({
+      where: { id: video.id },
+      data: { cover: CoverUrl },
+    });
+    console.log(`VOD 截图回调: 视频 id=${video.id} 封面已更新为 ${CoverUrl}`);
+    res.status(200).json({ msg: '封面更新成功' });
+  } catch (error) {
+    console.error('VOD 截图回调处理失败:', error);
+    res.status(500).json({ error: '回调处理失败' });
+  }
+};
+
 // 获取视频播放信息（根据 VideoId 获取播放 URL）
 exports.getPlayInfo = async (req, res) => {
   try {
