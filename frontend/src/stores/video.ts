@@ -18,7 +18,7 @@ export const useVideoStore = defineStore('video', () => {
     videos.value = res.data.videolist
     videoTotal.value = res.data.getvideoCount
     loading.value = false
-    console.log(videos.value,'videos');
+    return res.data
     
   }
 
