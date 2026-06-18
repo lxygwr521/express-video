@@ -330,17 +330,22 @@ exports.createvideo = async (req, res) => {
     var dbback = await prisma.video.create({ data: body })
     if (!body.cover && body.vodvideoId) {
       const vodVideoId = body.vodvideoId
-      try {
-        const client = getVodClient()
-        // 提交封面截图任务，完成后 VOD 会回调 /api/v1/vod/callback 更新封面
-        await client.request('SubmitSnapshotJob', {
-          VideoId: vodVideoId,
-          SnapshotType: 'CoverSnapshot',
-          Count: 1,
-        }, {})
-      } catch (e) {
-        console.error('提交截图任务失败:', e.message)
+      //如果没有手动上传封面则进行自动截图
+      if(!body.cover){
+        try {
+          const client = getVodClient()
+          // 提交封面截图任务，完成后 VOD 会回调 /api/v1/vod/callback 更新封面
+          await client.request('SubmitSnapshotJob', {
+            VideoId: vodVideoId,
+            SnapshotType: 'CoverSnapshot',
+            Count: 1,
+          }, {})
+        } catch (e) {
+          console.error('提交截图任务失败:', e.message)
+        }
+
       }
+      
     }
     res.status(201).json({ dbback })
   } catch (error) {
@@ -417,5 +422,36 @@ exports.deleteVideo = async (req, res) => {
     res.status(200).json({ msg: '视频已删除' })
   } catch (error) {
     res.status(500).json({ err: error })
+  }
+}
+
+// 视频封面上传 → 阿里云 OSS
+exports.uploadCover = async (req, res) => {
+  try {
+    const oss = require('../model/oss')
+    const fs = require('fs')
+    const path = require('path')
+    const crypto = require('crypto')
+
+    const fileArr = req.file.originalname.split('.')
+    const filetype = fileArr[fileArr.length - 1]
+    const localPath = path.join('./public/', req.file.filename)
+
+    // 生成 OSS 存储路径：covers/年月/随机串.后缀
+    const date = new Date()
+    const month = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`
+    const random = crypto.randomBytes(8).toString('hex')
+    const ossKey = `covers/${month}/${random}.${filetype}`
+
+    // 上传到 OSS
+    const result = await oss.put(ossKey, localPath)
+    // 删除本地临时文件
+    fs.unlink(localPath, () => {})
+
+    // 返回 OSS 公网访问 URL
+    res.status(201).json({ filepath: result.url })
+  } catch (error) {
+    console.error('封面上传 OSS 失败:', error)
+    res.status(500).json({ err: '封面上传失败' })
   }
 }

@@ -52,6 +52,7 @@ const toast = useToast()
 const formRef = ref<FormInstance>()
 const form = reactive({ title: '', descrption: '' })
 const videoFile = ref<File | null>(null)
+const coverFile = ref<File | null>(null)
 const uploading = ref(false)
 const uploadPercent = ref(0)
 const uploadStage = ref<'idle' | 'starting' | 'uploading' | 'creating' | 'done'>('idle')
@@ -78,6 +79,14 @@ function handleFileChange(file: UploadFile) {
 
 function handleFileRemove() {
   videoFile.value = null
+}
+
+function handleCoverChange(file: UploadFile) {
+  coverFile.value = file.raw ?? null
+}
+
+function handleCoverRemove() {
+  coverFile.value = null
 }
 
 async function handleUpload() {
@@ -179,34 +188,48 @@ async function handleUpload() {
       }, 300)
     })
 
-    // 5. 创建数据库记录
+    // 5. 上传手动封面（如果选择了封面图片）
+    let coverUrl: string | undefined
+    if (coverFile.value) {
+      const coverRes = await videoApi.uploadCover(coverFile.value)
+      coverUrl = coverRes.data.filepath
+    }
+
+    // 6. 创建数据库记录
     uploadStage.value = 'creating'
     const createRes = await videoApi.createVideo({
       title: form.title,
       descrption: form.descrption || undefined,
       vodvideoId: uploadedVideoId,
+      cover: coverUrl,
     })
     const videoId = createRes.data.dbback.id
 
-    // 6. 轮询等待 VOD 截图回调更新封面（最多等 30 秒）
-    let coverReady = false
-    for (let i = 0; i < 10; i++) {
-      await new Promise(r => setTimeout(r, 1000))
-      const detail = await videoApi.getVideo(videoId)
-      if (detail.data.cover) {
-        coverReady = true
-        break
-      }
-    }
-    if (coverReady) {
+    // 7. 手动封面跳过等待，否则轮询等待 VOD 截图回调（最多等 30 秒）
+    if (coverUrl) {
       uploadStage.value = 'done'
       toast.success('视频发布成功！')
       setTimeout(() => {
-      router.push(`/video/${videoId}`)
-    }, 600)
+        router.push(`/video/${videoId}`)
+      }, 600)
+    } else {
+      let coverReady = false
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 1000))
+        const detail = await videoApi.getVideo(videoId)
+        if (detail.data.cover) {
+          coverReady = true
+          break
+        }
+      }
+      if (coverReady) {
+        uploadStage.value = 'done'
+        toast.success('视频发布成功！')
+        setTimeout(() => {
+          router.push(`/video/${videoId}`)
+        }, 600)
+      }
     }
-
-
   } catch (e: any) {
     if (!uploadErrorHandled.value) {
       const msg = e?.response?.data?.error || e?.message || '上传失败'
@@ -262,6 +285,24 @@ async function handleUpload() {
             </div>
             <template #tip>
               <p class="text-xs text-gray-400 mt-1">支持常见视频格式，单文件上传</p>
+            </template>
+          </el-upload>
+        </el-form-item>
+
+        <!-- 选择封面图片（选填） -->
+        <el-form-item label="视频封面（选填，不选则由系统自动生成）">
+          <el-upload
+            :auto-upload="false"
+            :limit="1"
+            accept="image/*"
+            list-type="picture"
+            :on-change="handleCoverChange"
+            :on-remove="handleCoverRemove"
+            :disabled="uploading"
+          >
+            <el-button size="small" type="primary" plain>选择封面图片</el-button>
+            <template #tip>
+              <p class="text-xs text-gray-400 mt-1">支持 JPG、PNG 等常见图片格式</p>
             </template>
           </el-upload>
         </el-form-item>

@@ -4,6 +4,8 @@ const videoController = require('../controller/videoController')
 const vodController = require('../controller/vodController')
 const { verifyToken } = require('../util/jwt')
 const { videoValidator } = require('../middleware/validator/videoValidator')
+const multer = require('multer')
+const upload = multer({ dest: 'public/' })
 
 router
   .get('/gethots/:topnum', videoController.getHots)
@@ -21,4 +23,5 @@ router
   .get('/getvod', verifyToken(), vodController.getvod)
   .get('/playinfo/:videoId', verifyToken(false), vodController.getPlayInfo) //调阿里云，拿"播放流" 返回的是给播放器用的数据：视频流地址。
   .post('/createvideo', verifyToken(), videoValidator, videoController.createvideo)
+  .post('/coverimg', verifyToken(), upload.single('coverimg'), videoController.uploadCover)
 module.exports = router

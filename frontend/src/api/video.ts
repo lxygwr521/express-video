@@ -77,6 +77,15 @@ export const videoApi = {
     }>('/video/getvod', { params: { title, fileName } })
   },
 
+  // 上传视频封面图片
+  uploadCover(file: File) {
+    const fd = new FormData()
+    fd.append('coverimg', file)
+    return request.post<{ filepath: string }>('/video/coverimg', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+
   // 获取 VOD 视频播放信息（根据 vodVideoId 获取实际播放 URL）
   getPlayInfo(vodVideoId: string) {
     return request.get<{
