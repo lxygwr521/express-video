@@ -6,8 +6,12 @@ dump.rdb
 /websocket-plan-ethereal-hartmanis.md
 # local env files
 .env
+.env.docker
 .env.local
 .env.*.local
+
+# database dumps
+db_dump.sql
 
 # Log files
 npm-debug.log*

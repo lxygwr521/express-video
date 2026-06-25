@@ -17,6 +17,15 @@ async def lifespan(app: FastAPI):
     from app.core.redis import init_lua_scripts, redis
     await init_lua_scripts()
     print(f"Server starting on port {settings.PORT}...")
+
+    # 自动建表（Prisma 的 db push 等价操作）
+    from app.database import engine
+    import app.models  # noqa: F401 — 确保所有模型注册到 Base.metadata
+    from app.models.base import Base
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    print("Database tables ensured.")
+
     yield
     # 关闭时
     await redis.aclose()
