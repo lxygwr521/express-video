@@ -12,7 +12,7 @@ const auth = useAuthStore()
 
 onMounted(async () => {
   // 确保已连接 WebSocket
-  if (!chat.connected && auth.isLoggedIn) {
+  if (!chat.socket?.connected && auth.isLoggedIn) {
     chat.connect()
   }
   // 加载会话列表

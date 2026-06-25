@@ -1,0 +1,10 @@
+node_modules
+__pycache__
+*.pyc
+.git
+.gitignore
+*.md
+dump.rdb
+venv
+.venv
+*.egg-info

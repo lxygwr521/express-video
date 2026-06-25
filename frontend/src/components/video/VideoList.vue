@@ -7,7 +7,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const store = useVideoStore()
-const pageSize = 10
+const pageSize = 12
 const pageNum = ref(1)
 const total = ref(0)
 const totalPages = computed(() => Math.ceil(total.value / pageSize))

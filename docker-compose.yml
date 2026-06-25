@@ -1,0 +1,70 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: express-video-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: express-video
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: express-video-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-root}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-root}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./fastapi-video
+    container_name: express-video-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: "3000"
+      DATABASE_URL: mysql+aiomysql://root:${MYSQL_ROOT_PASSWORD:-root}@mysql:3306/express-video
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-root}
+      JWT_SECRET: ${JWT_SECRET:-4a380a09-3aab-401b-a620-1372b7e8c77a}
+      JWT_EXPIRE_HOURS: "24"
+      ALIYUN_ACCESS_KEY_ID: ${ALIYUN_ACCESS_KEY_ID}
+      ALIYUN_ACCESS_KEY_SECRET: ${ALIYUN_ACCESS_KEY_SECRET}
+      OSS_BUCKET: ${OSS_BUCKET}
+      OSS_REGION: ${OSS_REGION:-oss-cn-beijing}
+      CORS_ORIGINS: '["*"]'
+    ports:
+      - "3001:3000"
+
+  frontend:
+    build: ./frontend
+    container_name: express-video-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  mysql_data:
+  redis_data:

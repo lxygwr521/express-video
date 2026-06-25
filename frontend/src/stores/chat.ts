@@ -21,6 +21,8 @@ export const useChatStore = defineStore('chat', () => {
     if (!token || socket.value) return
 
     const wsUrl = import.meta.env.DEV ? 'http://localhost:3000' : window.location.origin
+    // 在建立 WebSocket 连接（握手阶段）时向服务器提供身份凭证，以便服务器进行用户认证和授权。这相当于 Web 开发中 HTTP 请求头里的 Authorization: Bearer <token>，
+    // 但因为 WebSocket 握手时无法自定义 HTTP 头（浏览器 WebSocket API 限制），所以 Socket.IO 官方提供了 auth 字段来专门解决这个问题。
     const s = io(wsUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
